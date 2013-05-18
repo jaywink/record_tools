@@ -4,6 +4,7 @@
 from AudioFile import AudioFile
 from TrackDB import TrackDB
 import discogs_client as discogs
+import ConfigParser
 import os
 import sys
 import traceback
@@ -19,6 +20,10 @@ count = 0
 db = TrackDB()
 
 discogs.user_agent = 'RecordTools/0.4 +http://basshero.org'
+
+config = ConfigParser.RawConfigParser()
+config.read('record_tools.properties')
+config.browser_command = config.get('Local', 'browser_command')
 
 fileTuple = os.walk(sys.argv[1])
 
@@ -41,42 +46,49 @@ for dirPath,subDir,fileName in fileTuple:
                             release = None
                             while key not in ['y','s','q']:
                                 for result in s.results():
-                                    try:
-                                        print ""
-                                        del artists[:]
-                                        for artist in result.artists:
-                                            artists.append(artist.data['name'])
-                                        output = "Discogs ID: "+str(result.data['id'])
-                                        output += "\nArtist: "+', '.join(artists)
-                                        output += "\nTitle: "+result.title
-                                        output += "\nFormat: "+ ' '.join(result.data['formats'][0]['descriptions'])
-                                        for track in result.tracklist:
-                                            output += '\n'+track['position']+' '+track['title']
-                                        print output+'\n'
-                                        key = raw_input("This release? (y=accept, enter=next, s=skip, q=quit, or input Discogs ID) ")
-                                    except KeyError, e:
-                                        from pprint import pprint
-                                        pprint(vars(result))
-                                        key = chr(13)
-                                    except KeyboardInterrupt, e:
-                                        key = 'q'
-                                    if key == 'y':
-                                        release = result
-                                        break
-                                    elif key == 's':
-                                        release = None
-                                        break
-                                    elif key == 'q':
-                                        sys.exit(0)
-                                    elif key.isdigit():
-                                        # discogs release ID?
-                                        release = discogs.Release(int(key))
-                                        if release:
-                                            key = 'y'
+                                    key = None
+                                    while key == None:
+                                        try:
+                                            print ""
+                                            del artists[:]
+                                            for artist in result.artists:
+                                                artists.append(artist.data['name'])
+                                            output = "Discogs ID: "+str(result.data['id'])
+                                            output += "\nArtist: "+', '.join(artists)
+                                            output += "\nTitle: "+result.title
+                                            output += "\nFormat: "+ ' '.join(result.data['formats'][0]['descriptions'])
+                                            for track in result.tracklist:
+                                                output += '\n'+track['position']+' '+track['title']
+                                            print output+'\n'
+                                            key = raw_input("This release? (y=accept, enter=next, o=open, s=skip, q=quit, or input Discogs ID) ")
+                                        except KeyError, e:
+                                            from pprint import pprint
+                                            pprint(vars(result))
+                                            key = chr(13)
+                                        except KeyboardInterrupt, e:
+                                            key = 'q'
+                                        if key == 'y':
+                                            release = result
                                             break
-                                        else:
+                                        elif key == 's':
                                             release = None
-                                            raise Exception()
+                                            break
+                                        elif key == 'q':
+                                            sys.exit(0)
+                                        elif key.isdigit():
+                                            # discogs release ID?
+                                            release = discogs.Release(int(key))
+                                            if release:
+                                                key = 'y'
+                                                break
+                                            else:
+                                                release = None
+                                                raise Exception()
+                                        elif key == 'o':
+                                            os.system(config.browser_command+' http://www.discogs.com/release/'+str(result.data['id']))
+                                            key = None
+                                    if key in ['s','y']:
+                                        break
                             if release:
                                 found.append(file.catalog)
                                 catnos[file.catalog] = release
