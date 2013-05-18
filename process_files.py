@@ -6,6 +6,7 @@ from TrackDB import TrackDB
 import discogs_client as discogs
 import os
 import sys
+import traceback
 
 found = []
 artists = []
@@ -33,10 +34,6 @@ for dirPath,subDir,fileName in fileTuple:
                 if file.catalog not in found:
                     #search discogs
                     s = discogs.Search(file.catalog)
-                    #if len(s.exactresults) > 0:
-                    #    print s.exactresults
-                    #    db.close()
-                    #    sys.exit(0)
                     try:
                         if len(s.results()) > 0:
                             print "Found",len(s.results()),"results"
@@ -44,18 +41,25 @@ for dirPath,subDir,fileName in fileTuple:
                             release = None
                             while key not in ['y','s','q']:
                                 for result in s.results():
-                                    print ""
-                                    del artists[:]
-                                    for artist in result.artists:
-                                        artists.append(artist.data['name'])
-                                    print "Discogs ID:",result.data['id']
-                                    print "Artist:",', '.join(artists)
-                                    print "Title:",result.title
-                                    print "Format:", ' '.join(result.data['formats'][0]['descriptions'])
-                                    for track in result.tracklist:
-                                        print track['position'],track['title']
-                                    print ""
-                                    key = raw_input("This release? (y=accept, enter=next, s=skip, q=quit, or input Discogs ID) ")
+                                    try:
+                                        print ""
+                                        del artists[:]
+                                        for artist in result.artists:
+                                            artists.append(artist.data['name'])
+                                        output = "Discogs ID: "+str(result.data['id'])
+                                        output += "\nArtist: "+', '.join(artists)
+                                        output += "\nTitle: "+result.title
+                                        output += "\nFormat: "+ ' '.join(result.data['formats'][0]['descriptions'])
+                                        for track in result.tracklist:
+                                            output += '\n'+track['position']+' '+track['title']
+                                        print output+'\n'
+                                        key = raw_input("This release? (y=accept, enter=next, s=skip, q=quit, or input Discogs ID) ")
+                                    except KeyError, e:
+                                        from pprint import pprint
+                                        pprint(vars(result))
+                                        key = chr(13)
+                                    except KeyboardInterrupt, e:
+                                        key = 'q'
                                     if key == 'y':
                                         release = result
                                         break
@@ -63,7 +67,7 @@ for dirPath,subDir,fileName in fileTuple:
                                         release = None
                                         break
                                     elif key == 'q':
-                                        sys.exit("Quitting..")
+                                        sys.exit(0)
                                     elif key.isdigit():
                                         # discogs release ID?
                                         release = discogs.Release(int(key))
@@ -76,7 +80,10 @@ for dirPath,subDir,fileName in fileTuple:
                             if release:
                                 found.append(file.catalog)
                                 catnos[file.catalog] = release
+                    except SystemExit, e:
+                        sys.exit(0)
                     except:
+                        traceback.print_exc()
                         print "None found!"
                         key = raw_input("Input Discogs ID or enter: ")
                         if key.isdigit():
@@ -124,9 +131,18 @@ for dirPath,subDir,fileName in fileTuple:
                         file.released = release.data['released_formatted']
                     except:
                         file.released = ''
-                    file.country = release.data['country']
-                    file.genres = ', '.join(release.data['genres'])
-                    file.styles = ', '.join(release.data['styles'])
+                    try:
+                        file.country = release.data['country']
+                    except:
+                        file.country = ''
+                    try:
+                        file.genres = ', '.join(release.data['genres'])
+                    except:
+                        file.genres = ''
+                    try:
+                        file.styles = ', '.join(release.data['styles'])
+                    except:
+                        file.styles = ''
                     if not file.track_title:
                         print "Could not map file track info to release tracks!"
                         print ""
@@ -165,6 +181,6 @@ for dirPath,subDir,fileName in fileTuple:
                                     #rename and move
                                     file.rename_and_move()
                             except:
-                                pass
+                                traceback.print_exc()
                             db.close()
 
