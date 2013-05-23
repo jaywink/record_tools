@@ -27,6 +27,8 @@ class AudioFile:
     def __init__(self, name=None, path=None):
         self.name = name
         self.path = path
+        if self.path[len(self.path)-1:] != '/':
+            self.path += '/'
         self.track_title = None
         self.track_artists = None
         self.title = None
