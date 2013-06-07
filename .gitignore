@@ -1,2 +1,4 @@
 record_tools.properties
 *.pyc
+web/node_modules
+web/config.js

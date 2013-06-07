@@ -1,0 +1,19 @@
+{
+  "author": "Jason Robinson",
+  "name": "record-tools-web",
+  "description": "Web viewer for record_tools generated vinyl for sale list.",
+  "version": "0.1.0",
+  "repository": {
+    "url": "https://github.com/jaywink/record_tools"
+  },
+  "dependencies": {
+    "mysql": "2.0.0-alpha8",
+    "express": "3.2.4",
+    "handlebars": "1.0.11"
+  },
+  "devDependencies": {},
+  "optionalDependencies": {},
+  "engines": {
+    "node": "*"
+  }
+}

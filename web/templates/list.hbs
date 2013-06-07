@@ -1,0 +1,33 @@
+<html>
+    <head>
+    </head>
+    <body>
+        <script type="text/javascript">
+            window.onload=function(){var tfrow = document.getElementById('tfhover').rows.length;var tbRow=[];for (var i=1;i<tfrow;i++) {tbRow[i]=document.getElementById('tfhover').rows[i];tbRow[i].onmouseover = function(){this.style.backgroundColor = '#f3f8aa';};tbRow[i].onmouseout = function() {this.style.backgroundColor = '#ffffff';};}};
+        </script>
+        <style type="text/css">
+            table.tftable {font-size:12px;color:#333333;width:100%;border-width: 1px;border-color: #ebab3a;border-collapse: collapse;}table.tftable th {font-size:12px;background-color:#e6983b;border-width: 1px;padding: 8px;border-style: solid;border-color: #ebab3a;text-align:left;}table.tftable tr {background-color:#ffffff;}table.tftable td {font-size:12px;border-width: 1px;padding: 8px;border-style: solid;border-color: #ebab3a;}
+            a:link { color: black; }
+            a:hover { color: #333333; }
+            a:visited { color: black; }
+        </style>
+        <h1>
+            Basshero.org - Shop
+        </h1>
+        <p>Selling some old vinyl. All records at <b>Helsinki</b>. <a href="mailto:jaywink@basshero.org">Email</a>, SMS or call me (+358451259376). Buy many and get a massive discount. Will post at buyers expense for orders of more than 5.</p><p>Condition: VG - Very Good, G - Good, F - Fair, P - Poor</p>
+        <table id="tfhover" class="tftable" border="1">
+            <tr>
+                <th>ID</th>
+                <th>Pic</th>
+                <th>Name</th>
+                <th>Condition</th>
+                <th>Price</th>
+                <th>Notes</th>
+            </tr>
+            {{{rows}}}
+        </table>
+        <div style="text-align: center; font-size: 10px;">
+            <a href="https://github.com/jaywink/record_tools">record_tools</a> + node.js + express + handlebars + <a href="http://www.textfixer.com/html/html-table-generator.php">textfixer</a>
+        </div>
+    </body>
+</html>

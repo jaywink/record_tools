@@ -1,0 +1,12 @@
+var config = {}
+
+config.mysql = {
+    host: "localhost",
+    user: "user",
+    password: "password",
+    database: "database"
+};
+
+config.title = "Record Tools Web";
+
+module.exports = config;
