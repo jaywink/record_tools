@@ -112,8 +112,11 @@ for dirPath,subDir,fileName in fileTuple:
                 if release:
                     del artists[:]
                     for artist in release.artists:
-                        if artist not in (u'&',u'vs.','Feat.', u'Featuring'):
-                            artists.append(artist.data['name'])
+                        try:
+                            if artist not in (u'&',u'vs.','Feat.', u'Featuring', u'+') and artist._id != u'Various':
+                                artists.append(artist.data['name'])
+                        except:
+                            pass
                     file.artists = ', '.join(artists)
                     del labels[:]
                     for label in release.labels:
@@ -133,8 +136,11 @@ for dirPath,subDir,fileName in fileTuple:
                                 print track['artists']
                                 del track_artists[:]
                                 for artist in track['artists']:
-                                    if artist not in (u'&',u'vs.','Feat.',u'Featuring'):
-                                        track_artists.append(artist.data['name'])
+                                    try:
+                                        if artist not in (u'&',u'vs.','Feat.', u'Featuring', u'+') and artist._id != u'Various':
+                                            track_artists.append(artist.data['name'])
+                                    except:
+                                        pass
                                 file.track_artists = ', '.join(track_artists)
                             else:
                                 file.track_artists = file.artists
