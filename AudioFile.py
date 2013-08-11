@@ -43,7 +43,7 @@ class AudioFile:
         self.country = None
         self.genres = None
         self.styles = None
-        if re.match(".+_[ABCDEFGHIJ].?_[MVGFP]{1,2}\.mp3",name):
+        if re.match(".+_[A-Z0-9]+_[MVGFP]{1,2}\.mp3",name):
             print "MATCH",name
             splitted = name.split('_')
             self.catalog = splitted[0]
