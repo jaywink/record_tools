@@ -62,8 +62,6 @@ for dirPath,subDir,fileName in fileTuple:
                                             print output+'\n'
                                             key = raw_input("This release? (y=accept, enter=next, o=open, s=skip, q=quit, or input Discogs ID) ")
                                         except (KeyError, AttributeError), e:
-                                            from pprint import pprint
-                                            pprint(vars(result))
                                             key = chr(13)
                                         except KeyboardInterrupt, e:
                                             key = 'q'
