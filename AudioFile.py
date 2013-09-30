@@ -80,7 +80,13 @@ class AudioFile:
         tag.update(eyeD3.ID3_V1_1)
         
     def rename_and_move(self):
-        filename = self.track_artists+' - '+self.track_title+'.mp3'
+        if not os.access(self.output_path_audio+self.track_artists+' - '+self.track_title+'.mp3', os.F_OK):
+            filename = self.track_artists+' - '+self.track_title+'.mp3'
+        else:
+            count = 1
+            while os.access(self.output_path_audio+self.track_artists+' - '+self.track_title+' - '+str(count)+'.mp3', os.F_OK):
+                count += 1
+            filename = self.track_artists+' - '+self.track_title+' - '+str(count)+'.mp3'
         os.rename(self.path+self.name,self.output_path_audio+filename)
         
         

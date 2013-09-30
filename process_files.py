@@ -124,6 +124,7 @@ for dirPath,subDir,fileName in fileTuple:
                         file.title = release.title
                     except:
                         file.title = release.title.strip('*')
+                    file.title = file.title.strip('?/')
                     file.format = ' '.join(release.data['formats'][0]['descriptions'])
                     del tracklist[:]
                     for track in release.tracklist:
@@ -142,6 +143,7 @@ for dirPath,subDir,fileName in fileTuple:
                                 file.track_artists = ', '.join(track_artists)
                             else:
                                 file.track_artists = file.artists
+                            file.track_artists = file.track_artists.strip('?/')
                     file.tracklist = '\n'.join(tracklist)
                     try:
                         file.released = release.data['released_formatted']
@@ -160,7 +162,7 @@ for dirPath,subDir,fileName in fileTuple:
                     except:
                         file.styles = ''
                     if not file.track_title:
-                        print "Could not map file track info to release tracks! ("+file.catalog+")"
+                        print "Could not map file track info to release tracks! ("+file.to_string()+")"
                         print ""
                         for track in release.tracklist:
                             print str(release.tracklist.index(track)+1)+")",track['position'],track['title']
