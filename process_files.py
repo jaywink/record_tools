@@ -97,7 +97,7 @@ for dirPath,subDir,fileName in fileTuple:
                     except:
                         traceback.print_exc()
                         print "None found!"
-                        key = raw_input("Input Discogs ID or enter: ")
+                        key = raw_input("Input Discogs ID or enter ("+file.catalog+"): ")
                         if key.isdigit():
                             release = discogs.Release(int(key))
                             if release:
@@ -162,7 +162,7 @@ for dirPath,subDir,fileName in fileTuple:
                     except:
                         file.styles = ''
                     if not file.track_title:
-                        print "Could not map file track info to release tracks!"
+                        print "Could not map file track info to release tracks! ("+file.catalog+")"
                         print ""
                         for track in release.tracklist:
                             print str(release.tracklist.index(track)+1)+")",track['position'],track['title']
