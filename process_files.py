@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from AudioFile import AudioFile
 from TrackDB import TrackDB
-import discogs_client as discogs
+import discogs_client
 import ConfigParser
 import os
 import sys
@@ -18,12 +18,15 @@ count = 0
 
 db = TrackDB()
 
-discogs.user_agent = 'RecordTools/0.4 +http://basshero.org'
-
 config = ConfigParser.RawConfigParser()
 config.read('record_tools.properties')
 config.browser_command = config.get('Local', 'browser_command')
 config.save_to_db = config.getboolean("DB", "save_to_db")
+config.discogs_token = config.get("Discogs", "token")
+
+discogs = discogs_client.Client(
+    'RecordTools/0.4 +htts://github.com/jaywink/record_tools', user_token=config.discogs_token
+)
 
 fileTuple = os.walk(sys.argv[1])
 
@@ -38,14 +41,16 @@ for dirPath,subDir,fileName in fileTuple:
                 #check if found before
                 if file.catalog not in found:
                     #search discogs
-                    s = discogs.Search(file.catalog)
+                    results = discogs.search(file.catalog)
                     try:
-                        if len(s.results()) > 0:
-                            print "Found",len(s.results()),"results"
+                        if results:
+                            print "Found",len(results), "results"
                             key = ''
                             release = None
                             while key not in ['y','s','q']:
-                                for result in s.results():
+                                for result in results:
+                                    if result.data.get("type") == "master":
+                                        continue
                                     key = None
                                     while key == None:
                                         try:
@@ -53,13 +58,13 @@ for dirPath,subDir,fileName in fileTuple:
                                             del artists[:]
                                             for artist in result.artists:
                                                 artists.append(artist.data['name'])
-                                            output = "Discogs ID: "+str(result.data['id'])
-                                            output += "\nArtist: "+', '.join(artists)
-                                            output += "\nTitle: "+result.title
-                                            output += "\nFormat: "+ ' '.join(result.data['formats'][0]['descriptions'])
+                                            print "Discogs ID: %s" % result.data['id']
+                                            print "Artist: %s" % ', '.join(artists)
+                                            print "Title: %s" % result.title
+                                            print "Format: %s" % ' '.join(result.data['formats'][0]['descriptions'])
                                             for track in result.tracklist:
-                                                output += '\n'+track['position']+' '+track['title']
-                                            print output+'\n'
+                                                print "%s %s" % (track.position, track.title)
+                                            print ""
                                             key = raw_input("This release? (y=accept, enter=next, o=open, s=skip, q=quit, or input Discogs ID) ")
                                         except (KeyError, AttributeError), e:
                                             key = chr(13)
@@ -128,13 +133,13 @@ for dirPath,subDir,fileName in fileTuple:
                     file.format = ' '.join(release.data['formats'][0]['descriptions'])
                     del tracklist[:]
                     for track in release.tracklist:
-                        tracklist.append(track['position']+') '+track['title'])
-                        if track['position'] == file.track:
-                            file.track_title = track['title']
-                            if len(track['artists']) > 0:
-                                print track['artists']
+                        tracklist.append(track.position+') '+track.title)
+                        if track.position == file.track:
+                            file.track_title = track.title
+                            if len(track.artists) > 0:
+                                print track.artists
                                 del track_artists[:]
-                                for artist in track['artists']:
+                                for artist in track.artists:
                                     try:
                                         if artist not in (u'&',u'vs.','Feat.', u'Featuring', u'+') and artist._id != u'Various':
                                             track_artists.append(artist.data['name'])
@@ -165,14 +170,14 @@ for dirPath,subDir,fileName in fileTuple:
                         print "Could not map file track info to release tracks! ("+file.to_string()+")"
                         print ""
                         for track in release.tracklist:
-                            print str(release.tracklist.index(track)+1)+")",track['position'],track['title']
+                            print str(release.tracklist.index(track)+1)+")", track.position, track.title
                         print ""
                         track_input = raw_input("Please select track from list: ")
                         try:
-                            file.track_title = release.tracklist[int(track_input)-1]['title']
-                            if len(release.tracklist[int(track_input)-1]['artists']) > 0:
+                            file.track_title = release.tracklist[int(track_input)-1].title
+                            if len(release.tracklist[int(track_input)-1].artists) > 0:
                                 del track_artists[:]
-                                for artist in release.tracklist[int(track_input)-1]['artists']:
+                                for artist in release.tracklist[int(track_input)-1].artists:
                                     if artist not in (u'&',u'vs.','Feat.', 'Featuring'):
                                         track_artists.append(artist.data['name'])
                                 file.track_artists = ', '.join(track_artists)
@@ -201,3 +206,5 @@ for dirPath,subDir,fileName in fileTuple:
                             file.set_tags()
                             # rename and move
                             file.rename_and_move()
+                    else:
+                        print "Something wrong!"

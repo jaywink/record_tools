@@ -11,3 +11,6 @@ picture_default_url=http://sharez.basshero.org/img/white-label.jpg
 [Local]
 browser_command=firefox
 output_path_audio=/home/jaywink/Music/processed/
+
+[Discogs]
+token=set_this_to_search
