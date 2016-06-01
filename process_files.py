@@ -1,6 +1,4 @@
-#!/usr/bin/python
 # -*- coding: utf-8 -*-
-
 from AudioFile import AudioFile
 from TrackDB import TrackDB
 import discogs_client as discogs
@@ -8,6 +6,7 @@ import ConfigParser
 import os
 import sys
 import traceback
+
 
 found = []
 artists = []
@@ -24,6 +23,7 @@ discogs.user_agent = 'RecordTools/0.4 +http://basshero.org'
 config = ConfigParser.RawConfigParser()
 config.read('record_tools.properties')
 config.browser_command = config.get('Local', 'browser_command')
+config.save_to_db = config.getboolean("DB", "save_to_db")
 
 fileTuple = os.walk(sys.argv[1])
 
@@ -190,15 +190,14 @@ for dirPath,subDir,fileName in fileTuple:
                         print "Artist:      ",file.track_artists
                         key = raw_input("Confirm - s to skip, any other accept: ")
                         if key != 's':
-                            db.connect()
-                            try:
-                                if db.add_release_if_none(file, release):
-                                    #success, continue with tagging, etc
-                                    #set tags
-                                    file.set_tags()
-                                    #rename and move
-                                    file.rename_and_move()
-                            except:
-                                traceback.print_exc()
-                            db.close()
-
+                            if config.save_to_db:
+                                db.connect()
+                                db_result = db.add_release_if_none(file, release)
+                                db.close()
+                                if not db_result:
+                                    print "Error adding to DB"
+                                    sys.exit(1)
+                            # set tags
+                            file.set_tags()
+                            # rename and move
+                            file.rename_and_move()
