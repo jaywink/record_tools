@@ -1,20 +1,19 @@
 # -*- coding: utf-8 -*-
-from AudioFile import AudioFile
-from TrackDB import TrackDB
-import discogs_client
 import ConfigParser
 import os
+import re
 import sys
 import traceback
+import urllib
+
+import discogs_client
+
+from AudioFile import AudioFile
+from TrackDB import TrackDB
 
 
 found = []
-artists = []
-tracklist = []
-labels = []
-track_artists = []
 catnos = {}
-count = 0
 
 db = TrackDB()
 
@@ -25,53 +24,68 @@ config.save_to_db = config.getboolean("DB", "save_to_db")
 config.discogs_token = config.get("Discogs", "token")
 
 discogs = discogs_client.Client(
-    'RecordTools/0.4 +htts://github.com/jaywink/record_tools', user_token=config.discogs_token
+    'RecordTools/0.5 +htts://github.com/jaywink/record_tools', user_token=config.discogs_token
 )
 
 fileTuple = os.walk(sys.argv[1])
 
-for dirPath,subDir,fileName in fileTuple:
-    for name in fileName:
-        file = AudioFile(name,dirPath)
+
+def get_artists_string(artists):
+    """Get artist names from a list of Artist objects.
+
+    :param artists: list
+    :return: unicode
+    """
+    found = []
+    for artist in artists:
+        if artist.data["name"] not in (u'&', u'vs.', u'Feat.', u'Featuring', u'+'):
+            name = re.sub(r" \([0-9]*\)", "", artist.data["name"])  # Clean (1) things away
+            found.append(name)
+    return u' & '.join(found)
+
+
+for path, subpath, filename in fileTuple:
+    for name in filename:
+        file = AudioFile(name, path)
         if file.catalog:
             release = None
             print file.to_string()
             if len(file.catalog) > 0:
-                release = None
-                #check if found before
+                # Check if found before
                 if file.catalog not in found:
-                    #search discogs
+                    # Search discogs
                     results = discogs.search(file.catalog)
                     try:
                         if results:
                             print "Found",len(results), "results"
-                            key = ''
-                            release = None
-                            while key not in ['y','s','q']:
+                            key = None
+                            while not release:
                                 for result in results:
                                     if result.data.get("type") == "master":
+                                        print "..skipping master release %s" % result.title
                                         continue
                                     key = None
-                                    while key == None:
+                                    while key not in ['y', 's', 'q']:
                                         try:
                                             print ""
-                                            del artists[:]
-                                            for artist in result.artists:
-                                                artists.append(artist.data['name'])
-                                            print "Discogs ID: %s" % result.data['id']
-                                            print "Artist: %s" % ', '.join(artists)
-                                            print "Title: %s" % result.title
-                                            print "Format: %s" % ' '.join(result.data['formats'][0]['descriptions'])
+                                            print u"Discogs ID: %s" % result.data['id']
+                                            print u"Discogs catno: %s" % result.data["catno"]
+                                            print u"Artist: %s" % get_artists_string(result.artists)
+                                            print u"Title: %s" % result.title
+                                            print u"Format: %s" % u' '.join(result.data['formats'][0]['descriptions'])
                                             for track in result.tracklist:
-                                                print "%s %s" % (track.position, track.title)
+                                                print u"%s %s" % (track.position, track.title)
                                             print ""
-                                            key = raw_input("This release? (y=accept, enter=next, o=open, s=skip, q=quit, or input Discogs ID) ")
-                                        except (KeyError, AttributeError), e:
-                                            key = chr(13)
-                                        except KeyboardInterrupt, e:
+                                            key = raw_input(u"This release? (y=accept, enter=next, o=open, s=skip, "
+                                                            u"q=quit, or input Discogs ID) ")
+                                        except (KeyError, AttributeError):
+                                            key = ""
+                                        except KeyboardInterrupt:
                                             key = 'q'
                                         if key == 'y':
                                             release = result
+                                            break
+                                        elif key == "":
                                             break
                                         elif key == 's':
                                             release = None
@@ -80,7 +94,7 @@ for dirPath,subDir,fileName in fileTuple:
                                             sys.exit(0)
                                         elif key.isdigit():
                                             # discogs release ID?
-                                            release = discogs.Release(int(key))
+                                            release = discogs.release(int(key))
                                             if release:
                                                 key = 'y'
                                                 break
@@ -88,21 +102,24 @@ for dirPath,subDir,fileName in fileTuple:
                                                 release = None
                                                 raise Exception()
                                         elif key == 'o':
-                                            os.system(config.browser_command+' http://www.discogs.com/release/'+str(result.data['id']))
+                                            os.system(config.browser_command+
+                                                      ' http://www.discogs.com/release/'+str(result.data['id']))
                                             key = None
-                                    if key in ['s','y','q']:
+                                    if key in ['s', 'y', 'q']:
                                         break
+                                if key in ['s', 'q']:
+                                    break
                             if release:
                                 found.append(file.catalog)
                                 catnos[file.catalog] = release
-                    except SystemExit, e:
+                    except SystemExit:
                         sys.exit(0)
                     except:
                         traceback.print_exc()
                         print "None found!"
-                        key = raw_input("Input Discogs ID or enter ("+file.catalog+"): ")
+                        key = raw_input("Input Discogs ID or enter (%s): " % file.catalog)
                         if key.isdigit():
-                            release = discogs.Release(int(key))
+                            release = discogs.release(int(key))
                             if release:
                                 found.append(file.catalog)
                                 catnos[file.catalog] = release
@@ -111,88 +128,57 @@ for dirPath,subDir,fileName in fileTuple:
                 else:
                     print "Already previously found!"
                     release = catnos[file.catalog]
-                #here we should have a release
+                # Here we should have a release
                 if release:
-                    del artists[:]
-                    for artist in release.artists:
-                        try:
-                            if artist not in (u'&',u'vs.','Feat.', u'Featuring', u'+') and artist._id != u'Various':
-                                artists.append(artist.data['name'])
-                        except:
-                            pass
-                    file.artists = ', '.join(artists)
-                    del labels[:]
-                    for label in release.labels:
-                        labels.append(label.data['name'])
-                    file.labels = ', '.join(labels)
-                    try:
-                        file.title = release.title
-                    except:
-                        file.title = release.title.strip('*')
-                    file.title = file.title.strip('?/')
-                    file.format = ' '.join(release.data['formats'][0]['descriptions'])
-                    del tracklist[:]
-                    for track in release.tracklist:
-                        tracklist.append(track.position+') '+track.title)
-                        if track.position == file.track:
+                    file.catalog = release.data["catno"]  # Replace with the one from discogs
+                    file.year = release.year
+                    file.artists = get_artists_string(release.artists)
+                    file.labels = u", ".join([label.data["name"] for label in release.labels])
+                    file.title = release.title.strip('?/*')
+                    file.format = u' '.join(release.data['formats'][0]['descriptions'])
+                    tracklist = []
+                    for count, track in enumerate(release.tracklist, 1):
+                        print u"%s - %s) %s" % (count, track.position, track.title)
+                        tracklist.append(u"%s) %s" % (track.position, track.title))
+                        if track.position == file.track or track.position == "B" and file.track == "AA":
                             file.track_title = track.title
-                            if len(track.artists) > 0:
-                                print track.artists
-                                del track_artists[:]
-                                for artist in track.artists:
-                                    try:
-                                        if artist not in (u'&',u'vs.','Feat.', u'Featuring', u'+') and artist._id != u'Various':
-                                            track_artists.append(artist.data['name'])
-                                    except:
-                                        pass
-                                file.track_artists = ', '.join(track_artists)
-                            else:
+                            file.track_artists = get_artists_string(track.artists)
+                            if not file.track_artists:
                                 file.track_artists = file.artists
-                            file.track_artists = file.track_artists.strip('?/')
-                    file.tracklist = '\n'.join(tracklist)
-                    try:
+                            file.track_pos = (count, len(release.tracklist))
+                    file.tracklist = u'\n'.join(tracklist)
+                    if "released_formatted" in release.data:
                         file.released = release.data['released_formatted']
-                    except:
-                        file.released = ''
-                    try:
+                    if "country" in release.data:
                         file.country = release.data['country']
-                    except:
-                        file.country = ''
-                    try:
-                        file.genres = ', '.join(release.data['genres'])
-                    except:
-                        file.genres = ''
-                    try:
-                        file.styles = ', '.join(release.data['styles'])
-                    except:
-                        file.styles = ''
+                    file.genres = u', '.join(release.data['genres'])
+                    file.styles = u', '.join(release.data['styles'])
+                    if release.images:
+                        for counter, image in enumerate(release.images, 1):
+                            extension = image["resource_url"].split(".")[-1]
+                            image_path = "/tmp/record_tools_image_tmp_%s.%s" % (counter, extension)
+                            urllib.urlretrieve(image["resource_url"], image_path)
+                            file.images.append(image_path)
                     if not file.track_title:
-                        print "Could not map file track info to release tracks! ("+file.to_string()+")"
-                        print ""
-                        for track in release.tracklist:
-                            print str(release.tracklist.index(track)+1)+")", track.position, track.title
+                        print "Could not map file track info to release tracks! (%s)" % file.to_string()
                         print ""
                         track_input = raw_input("Please select track from list: ")
                         try:
                             file.track_title = release.tracklist[int(track_input)-1].title
-                            if len(release.tracklist[int(track_input)-1].artists) > 0:
-                                del track_artists[:]
-                                for artist in release.tracklist[int(track_input)-1].artists:
-                                    if artist not in (u'&',u'vs.','Feat.', 'Featuring'):
-                                        track_artists.append(artist.data['name'])
-                                file.track_artists = ', '.join(track_artists)
-                            else:
+                            file.track_artists = get_artists_string(release.tracklist[int(track_input)-1].artists)
+                            if not file.track_artists:
                                 file.track_artists = file.artists
-                        except Exception, e:
+                            file.track_pos = (int(track_input), len(release.tracklist))
+                        except Exception:
                             print "Track selection failed, skipping this file.."
-                            print e.message
+                            traceback.print_exc()
                             print release.tracklist
-                    #here we should have a track title, which is required to continue
+                    # Here we should have a track title, which is required to continue
                     if file.track_title and file.track_artists and file.name:
-                        #should doublecheck track name - been some errors
                         print ""
-                        print "Track title: ",file.track_title
-                        print "Artist:      ",file.track_artists
+                        print "Track title:  %s" % file.track_title
+                        print "Artist:       %s" % file.track_artists
+                        print "TrackNo:      %s of %s" % (file.track_pos[0], file.track_pos[1])
                         key = raw_input("Confirm - s to skip, any other accept: ")
                         if key != 's':
                             if config.save_to_db:
@@ -202,9 +188,11 @@ for dirPath,subDir,fileName in fileTuple:
                                 if not db_result:
                                     print "Error adding to DB"
                                     sys.exit(1)
-                            # set tags
+                            # Set tags
                             file.set_tags()
-                            # rename and move
+                            # Rename and move
                             file.rename_and_move()
                     else:
                         print "Something wrong!"
+                        print vars(file)
+                        sys.exit(1)

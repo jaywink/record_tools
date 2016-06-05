@@ -1,29 +1,12 @@
-#!/usr/bin/python
 # -*- coding: utf-8 -*-
+import ConfigParser
+import os
+import re
 
 import eyeD3
-import ConfigParser
-import re
-import os
 
 
 class AudioFile:
-    title = None
-    artists = None
-    labels = None
-    format = None
-    name = None
-    path = None
-    catalog = None
-    track = None
-    condition = None
-    tracklist = None
-    track_title = None
-    released = None
-    country = None
-    genres = None
-    styles = None
-    
     def __init__(self, name=None, path=None):
         self.name = name
         self.path = path
@@ -33,16 +16,19 @@ class AudioFile:
         self.track_artists = None
         self.title = None
         self.artists = None
-        self.labels = None
-        self.format = None
+        self.labels = ""
+        self.format = ""
         self.catalog = None
         self.track = None
-        self.condition = None
-        self.tracklist = None
-        self.released = None
-        self.country = None
-        self.genres = None
-        self.styles = None
+        self.condition = ""
+        self.tracklist = ""
+        self.released = ""
+        self.country = ""
+        self.genres = ""
+        self.styles = ""
+        self.year = None
+        self.track_pos = None  # Tuple x of x style
+        self.images = []
         if re.match(".+_[A-Z0-9]+_[MVGFP]{1,2}\.mp3",name):
             print "MATCH",name
             splitted = name.split('_')
@@ -74,11 +60,39 @@ class AudioFile:
         tag.setArtist(unicode(self.track_artists))
         tag.setAlbum(unicode(self.title))
         tag.setTitle(unicode(self.track_title))
-        tag.removeComments()
-        tag.addComment(("Label: "+unicode(self.labels)+"\n"+"Catno: "+unicode(self.catalog)+"\n"+"Format: "+unicode(self.format)+"\n"+"Track: "+unicode(self.track)+"\n"+"Released: "+unicode(self.released)+"\n"+"Country: "+unicode(self.country)+"\n"+"Genres: "+unicode(self.genres)+"\n"+"Styles: "+unicode(self.styles)+"\n").encode('latin-1','replace'))
+        tag.setDate(self.year)
+        self._set_genre(tag)
+        if self.track_pos:
+            tag.setTrackNum(self.track_pos)
+        self._add_comments(tag)
+        self._add_images(tag)
         tag.update()
         tag.update(eyeD3.ID3_V1_1)
-        
+
+    def _add_images(self, tag):
+        for image in self.images:
+            tag.addImage(eyeD3.ImageFrame.OTHER, image)
+
+    def _add_comments(self, tag):
+        tag.removeComments()
+        comments = [
+            u"Label: %s" % self.labels,
+            u"Catno: %s" % self.catalog,
+            u"Format: %s" % self.format,
+            u"Track: %s" % self.track,
+            u"Released: %s" % self.released,
+            u"Country: %s" % self.country,
+            u"Genres: %s" % self.genres,
+            u"Styles: %s" % self.styles,
+        ]
+        tag.addComment(u"\n".join(comments))
+
+    def _set_genre(self, tag):
+        """Discogs styles are more accurate - take first."""
+        style = self.styles.split(",")[0]
+        genre = eyeD3.Genre(name=style.encode("latin-1", "replace"))
+        tag.setGenre(genre)
+
     def rename_and_move(self):
         if not os.access(self.output_path_audio+self.track_artists+' - '+self.track_title+'.mp3', os.F_OK):
             filename = self.track_artists+' - '+self.track_title+'.mp3'
@@ -88,6 +102,3 @@ class AudioFile:
                 count += 1
             filename = self.track_artists+' - '+self.track_title+' - '+str(count)+'.mp3'
         os.rename(self.path+self.name,self.output_path_audio+filename)
-        
-        
-
