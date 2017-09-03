@@ -42,21 +42,22 @@ class AudioFile:
         self.config = ConfigParser.RawConfigParser()
         self.config.read('record_tools.properties')
         self.output_path_audio = self.config.get('Local', 'output_path_audio')
-        
+
     def to_string(self):
         return self.path+self.name+' '+self.catalog+' '+self.track+' '+self.condition
-        
+
     def print_tags(self):
         tag = eyeD3.Tag()
         tag.link(self.path+self.name, eyeD3.ID3_V2)
         print "Artist:",tag.getArtist()
         print "Album:",tag.getAlbum()
         print "Title:",tag.getTitle()
-        
+
     def set_tags(self):
         tag = eyeD3.Tag()
-        tag.link(self.path+self.name, eyeD3.ID3_V2)
-        tag.header.setVersion(eyeD3.ID3_V2_3)
+        tag.link(self.path+self.name)
+        tag.header.setVersion(eyeD3.ID3_DEFAULT_VERSION)
+        tag.setTextEncoding(eyeD3.UTF_8_ENCODING)
         tag.setArtist(unicode(self.track_artists))
         tag.setAlbum(unicode(self.title))
         tag.setTitle(unicode(self.track_title))
@@ -67,7 +68,6 @@ class AudioFile:
         self._add_comments(tag)
         self._add_images(tag)
         tag.update()
-        tag.update(eyeD3.ID3_V1_1)
 
     def _add_images(self, tag):
         for image in self.images:
