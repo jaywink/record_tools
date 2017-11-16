@@ -151,8 +151,14 @@ for path, subpath, filename in fileTuple:
                         file.released = release.data['released_formatted']
                     if "country" in release.data:
                         file.country = release.data['country']
-                    file.genres = u', '.join(release.data['genres'])
-                    file.styles = u', '.join(release.data['styles'])
+                    try:
+                        file.genres = u', '.join(release.data['genres'])
+                    except KeyError:
+                        file.genres = ""
+                    try:
+                        file.styles = u', '.join(release.data['styles'])
+                    except KeyError:
+                        file.styles = ""
                     if release.images:
                         for counter, image in enumerate(release.images, 1):
                             extension = image["resource_url"].split(".")[-1]
