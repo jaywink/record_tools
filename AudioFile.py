@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+from __future__ import unicode_literals
+
 import ConfigParser
 import os
 import re
@@ -94,11 +96,12 @@ class AudioFile:
         tag.setGenre(genre)
 
     def rename_and_move(self):
-        if not os.access(self.output_path_audio+self.track_artists+' - '+self.track_title+'.mp3', os.F_OK):
-            filename = self.track_artists+' - '+self.track_title+'.mp3'
-        else:
+        file_name = "%s - %s" % (self.track_artists, self.track_title)
+        file_name = file_name.replace("/", " ")
+        full_name = self.output_path_audio + file_name
+        if os.access("%s.mp3" % full_name, os.F_OK):
             count = 1
-            while os.access(self.output_path_audio+self.track_artists+' - '+self.track_title+' - '+str(count)+'.mp3', os.F_OK):
+            while os.access("%s - %s.mp3" % (full_name, count), os.F_OK):
                 count += 1
-            filename = self.track_artists+' - '+self.track_title+' - '+str(count)+'.mp3'
-        os.rename(self.path+self.name,self.output_path_audio+filename)
+            full_name = "%s - %s.mp3" % (full_name, count)
+        os.rename(self.path + self.name, full_name)
